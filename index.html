@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Macro Calc">
+<meta name="theme-color" content="#0f1115">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<title>Macro Calc</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#262a33;--text:#eef0f4;--mute:#8a8f9c;--green:#7ee8a2;--blue:#7cc4ff;--amber:#ffc66d;--pink:#ff8fa3;--red:#ff6b6b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+body{padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 84px)}
+h1{font-size:22px;margin:4px 0 2px}h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:22px 0 8px;font-weight:600}
+.sub{color:var(--mute);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
+.ring-wrap{display:flex;gap:16px;align-items:center}
+.ring{position:relative;width:120px;height:120px;flex:none}.ring svg{transform:rotate(-90deg)}
+.ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.bars{flex:1}.bar{margin-bottom:9px}.bar .l{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin-bottom:3px}
+.bar .l b{color:var(--text);font-variant-numeric:tabular-nums;font-weight:600}
+.track{height:7px;background:var(--line);border-radius:9px;overflow:hidden}.fill{height:100%;border-radius:9px;transition:width .3s}
+.left{display:grid;grid-template-columns:1fr 1fr;gap:10px}.left .card{margin:0;text-align:center}
+.left .n{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}.row:last-child{border:0}
+.row .e{font-size:22px;width:28px;text-align:center}.row .t{flex:1;min-width:0}.row .t div:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;background:var(--line);border:0;border-radius:10px;padding:8px 12px;cursor:pointer}
+button.p{background:var(--green);color:#0b2a17;font-weight:600}button.x{background:none;color:var(--mute);padding:4px 8px}
+.meal-h{display:flex;justify-content:space-between;align-items:center}.meal-h b{font-size:16px}
+input,select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%}
+label{font-size:12px;color:var(--mute);display:block;margin:8px 0 4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+nav{position:fixed;left:0;right:0;bottom:0;background:rgba(15,17,21,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;padding:6px 6px calc(env(safe-area-inset-bottom) + 6px)}
+nav button{flex:1;background:none;color:var(--mute);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0}
+nav button span{font-size:20px}nav button.on{color:var(--green)}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;z-index:10}.sheet.open{display:flex}
+.sheet .in{background:var(--card);width:100%;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom) + 16px)}
+.chip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--line);color:var(--mute)}
+.chip.ok{background:#1d3a28;color:var(--green)}
+.stepper{display:flex;align-items:center;gap:6px}.stepper button{width:34px;padding:6px 0}
+.stepper span{min-width:34px;text-align:center;font-variant-numeric:tabular-nums}
+.empty{color:var(--mute);font-size:13px;padding:6px 0}
+.tab{display:none}.tab.on{display:block}
+</style>
+</head>
+<body>
+
+<section class="tab on" id="t-today">
+  <h1 id="dateH">Today</h1><div class="sub" id="dateS"></div>
+  <div class="card" style="margin-top:12px">
+    <div class="ring-wrap">
+      <div class="ring"><svg width="120" height="120"><circle cx="60" cy="60" r="52" stroke="#262a33" stroke-width="11" fill="none"/><circle id="ringArc" cx="60" cy="60" r="52" stroke="#7ee8a2" stroke-width="11" fill="none" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg>
+        <div class="c"><div class="big" id="calNum">0</div><div class="m" id="calGoal">/ 0 cal</div></div></div>
+      <div class="bars" id="bars"></div>
+    </div>
+  </div>
+  <div class="left">
+    <div class="card"><div class="m">Calories left</div><div class="n" id="calLeft">0</div></div>
+    <div class="card"><div class="m">Protein left</div><div class="n" id="proLeft" style="color:var(--blue)">0g</div></div>
+  </div>
+  <div id="meals"></div>
+  <button class="p" style="width:100%;margin-top:6px" onclick="showTab('ideas')">What can I make with what's left?</button>
+</section>
+
+<section class="tab" id="t-ideas">
+  <h1>Meal ideas</h1><div class="sub">Combos from your in-stock pantry that fit what you have left today.</div>
+  <div class="card" style="margin-top:12px"><div class="grid2" style="grid-template-columns:1fr 1fr 1fr">
+    <div><label>Meals left</label><select id="iMeals" onchange="renderIdeas()"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+    <div><label>Calories left</label><input id="iCal" type="number" inputmode="numeric"></div>
+    <div><label>Protein left (g)</label><input id="iPro" type="number" inputmode="numeric"></div>
+  </div><button class="p" style="width:100%;margin-top:10px" onclick="renderIdeas()">Find meals</button></div>
+  <div id="ideas"></div>
+</section>
+
+<section class="tab" id="t-pantry">
+  <h1>Pantry</h1><div class="sub">Tap the stock tag to mark what you have. Only in-stock items are used for meal ideas.</div>
+  <button class="p" style="width:100%;margin:12px 0" onclick="openFoodForm()">+ Add food</button>
+  <div class="card" id="pantryList"></div>
+</section>
+
+<section class="tab" id="t-more">
+  <h1>Settings</h1>
+  <h2>Daily goals</h2>
+  <div class="card"><div class="grid4">
+    <div><label>Cal</label><input id="gCal" type="number" inputmode="numeric"></div>
+    <div><label>Protein</label><input id="gP" type="number" inputmode="numeric"></div>
+    <div><label>Carbs</label><input id="gC" type="number" inputmode="numeric"></div>
+    <div><label>Fat</label><input id="gF" type="number" inputmode="numeric"></div>
+  </div><button class="p" style="width:100%;margin-top:10px" onclick="saveGoals()">Save goals</button></div>
+  <h2>History</h2>
+  <div class="card" id="history"></div>
+  <h2>Backup</h2>
+  <div class="card">
+    <div class="sub" style="margin-bottom:10px">Your data lives on this phone only. Export a backup now and then, and import it if you ever reinstall.</div>
+    <div class="grid2"><button onclick="exportData()">Export backup</button><button onclick="document.getElementById('imp').click()">Import backup</button></div>
+    <input type="file" id="imp" accept="application/json,.json" style="display:none" onchange="importData(this)">
+  </div>
+</section>
+
+<nav>
+  <button class="on" data-t="today" onclick="showTab('today')"><span>◎</span>Today</button>
+  <button data-t="ideas" onclick="showTab('ideas')"><span>✦</span>Ideas</button>
+  <button data-t="pantry" onclick="showTab('pantry')"><span>▤</span>Pantry</button>
+  <button data-t="more" onclick="showTab('more')"><span>⚙︎</span>Settings</button>
+</nav>
+
+<div class="sheet" id="sheet" onclick="if(event.target===this)closeSheet()"><div class="in" id="sheetIn"></div></div>
+
+<script>
+const DEFAULT_PANTRY=[
+{id:1,name:"TJ's Low Fat Greek Yogurt",brand:"Trader Joe's",emoji:"🫙",serving:"1 cup (227g)",cal:130,p:22,c:9,f:2},
+{id:2,name:"Banana",brand:"Fresh",emoji:"🍌",serving:"1 medium (118g)",cal:105,p:1,c:27,f:0},
+{id:3,name:"Honey",brand:"Trader Joe's",emoji:"🍯",serving:"1 tbsp (21g)",cal:60,p:0,c:17,f:0},
+{id:4,name:"Raspberry Jam",brand:"Trader Joe's",emoji:"🍓",serving:"1 tbsp (20g)",cal:50,p:0,c:13,f:0},
+{id:5,name:"Chicken Teriyaki Bowl",brand:"Trader Joe's",emoji:"🍱",serving:"1 bowl (319g)",cal:370,p:18,c:67,f:4},
+{id:6,name:"Frozen Jasmine Rice",brand:"Trader Joe's",emoji:"🍚",serving:"1 cup cooked (140g)",cal:210,p:4,c:45,f:1},
+{id:7,name:"Chicken Breakfast Sausage",brand:"Trader Joe's",emoji:"🌭",serving:"2 links (72g)",cal:140,p:13,c:1,f:9},
+{id:8,name:"Large Cage-Free Egg",brand:"Trader Joe's",emoji:"🥚",serving:"1 egg (50g)",cal:70,p:6,c:0,f:5},
+{id:9,name:"Jalapeño Beef Stick",brand:"Member's Mark",emoji:"🌶️",serving:"1 stick (28g)",cal:100,p:9,c:1,f:6},
+{id:10,name:"Original Beef Stick",brand:"Member's Mark",emoji:"🥩",serving:"1 stick (28g)",cal:100,p:9,c:1,f:6},
+{id:11,name:"Honey Jalapeño Chicken Stick",brand:"Mighty Spark",emoji:"🍗",serving:"1 stick (28g)",cal:60,p:6,c:4,f:2},
+{id:12,name:"Original Chicken Snack Stick",brand:"Mighty Spark",emoji:"🍗",serving:"1 stick (28g)",cal:60,p:7,c:2,f:2}
+].map(x=>({...x,stock:true}));
+const SLOTS=["Breakfast","Lunch","Dinner","Snacks"];
+const KEY="macrocalc.v1";
+const todayKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const emptyLog=()=>({Breakfast:[],Lunch:[],Dinner:[],Snacks:[]});
+
+let S;
+function load(){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  if(!S)S={goals:{cal:2200,p:180,c:220,f:65},pantry:DEFAULT_PANTRY,days:{}};
+  if(!S.days[todayKey()])S.days[todayKey()]=emptyLog();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){alert("Couldn't save: storage unavailable")}}
+const log=()=>S.days[todayKey()];
+const r1=n=>Math.round(n*10)/10;
+function totals(day){const t={cal:0,p:0,c:0,f:0};SLOTS.forEach(s=>(day[s]||[]).forEach(i=>{for(const k in t)t[k]+=i[k]*i.qty}));return t}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function render(){
+  const d=new Date();document.getElementById("dateS").textContent=d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+  const t=totals(log()),g=S.goals;
+  document.getElementById("calNum").textContent=Math.round(t.cal);
+  document.getElementById("calGoal").textContent="/ "+g.cal+" cal";
+  const arc=document.getElementById("ringArc");arc.style.strokeDashoffset=326.7*(1-Math.min(t.cal/g.cal,1));arc.style.stroke=t.cal>g.cal?"var(--red)":"var(--green)";
+  document.getElementById("bars").innerHTML=[["Protein","p","var(--blue)"],["Carbs","c","var(--amber)"],["Fat","f","var(--pink)"]].map(([n,k,col])=>
+    `<div class="bar"><div class="l">${n}<b>${Math.round(t[k])} / ${g[k]}g</b></div><div class="track"><div class="fill" style="width:${Math.min(t[k]/g[k]*100,100)}%;background:${t[k]>g[k]?"var(--red)":col}"></div></div></div>`).join("");
+  const cl=g.cal-t.cal,pl=g.p-t.p;
+  document.getElementById("calLeft").textContent=cl>=0?Math.round(cl):"+"+Math.round(-cl)+" over";
+  document.getElementById("calLeft").style.color=cl<0?"var(--red)":"var(--text)";
+  document.getElementById("proLeft").textContent=pl>0?Math.round(pl)+"g":"Hit ✓";
+  document.getElementById("meals").innerHTML=SLOTS.map(s=>{const items=log()[s];const st=items.reduce((a,i)=>a+i.cal*i.qty,0);
+    return `<div class="card"><div class="meal-h"><b>${s}</b><span class="m">${Math.round(st)} cal <button onclick="openAdd('${s}')">+ Add</button></span></div>
+    ${items.length?items.map((i,ix)=>`<div class="row"><div class="e">${i.emoji}</div><div class="t"><div>${esc(i.name)}</div><div class="m">${i.qty}× · ${Math.round(i.cal*i.qty)} cal · ${r1(i.p*i.qty)}g P</div></div><button class="x" onclick="removeItem('${s}',${ix})">✕</button></div>`).join(""):`<div class="empty">Nothing logged</div>`}</div>`}).join("");
+  renderPantry();renderHistory();
+  const ic=document.getElementById("iCal"),ip=document.getElementById("iPro");
+  const im=document.getElementById("iMeals");if(!im.dataset.set){const h=new Date().getHours();im.value=h<11?3:h<16?2:1;im.dataset.set=1}
+  if(document.activeElement!==ic)ic.value=Math.max(0,Math.round(cl));if(document.activeElement!==ip)ip.value=Math.max(0,Math.round(pl));
+  ["cal","p","c","f"].forEach((k,i)=>document.getElementById(["gCal","gP","gC","gF"][i]).value=g[k]);
+}
+function showTab(t){document.querySelectorAll(".tab").forEach(e=>e.classList.toggle("on",e.id==="t-"+t));
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  if(t==="ideas")renderIdeas();window.scrollTo(0,0)}
+
+function openSheet(h){document.getElementById("sheetIn").innerHTML=h;document.getElementById("sheet").classList.add("open")}
+function closeSheet(){document.getElementById("sheet").classList.remove("open")}
+
+let addQty={};
+function openAdd(slot){addQty={};
+  openSheet(`<div class="meal-h"><b>Add to ${slot}</b><button class="x" onclick="closeSheet()">Done</button></div>
+  <input placeholder="Search pantry" oninput="filterAdd(this.value)" style="margin:10px 0">
+  <div id="addList">${S.pantry.map(f=>`<div class="row" data-n="${esc(f.name.toLowerCase())}"><div class="e">${f.emoji}</div><div class="t"><div>${esc(f.name)}</div><div class="m">${esc(f.serving)} · ${f.cal} cal · ${f.p}g P</div></div>
+  <div class="stepper"><button onclick="stepQ(${f.id},-.5)">−</button><span id="q${f.id}">1</span><button onclick="stepQ(${f.id},.5)">+</button></div><button class="p" onclick="addFood('${slot}',${f.id})">Add</button></div>`).join("")}</div>
+  <button style="width:100%;margin-top:10px" onclick="openFoodForm('${slot}')">+ Quick custom entry</button>`)}
+function filterAdd(q){q=q.toLowerCase();document.querySelectorAll("#addList .row").forEach(r=>r.style.display=r.dataset.n.includes(q)?"":"none")}
+function stepQ(id,d){addQty[id]=Math.max(.5,(addQty[id]||1)+d);document.getElementById("q"+id).textContent=addQty[id]}
+function addFood(slot,id){const f=S.pantry.find(x=>x.id===id);log()[slot].push({name:f.name,emoji:f.emoji,cal:f.cal,p:f.p,c:f.c,f:f.f,qty:addQty[id]||1});save();render();
+  const b=event.target;b.textContent="✓";setTimeout(()=>b.textContent="Add",700)}
+function removeItem(s,ix){log()[s].splice(ix,1);save();render()}
+
+function openFoodForm(slot,editId){const f=editId?S.pantry.find(x=>x.id===editId):{name:"",emoji:"🍽️",serving:"1 serving",cal:"",p:"",c:"",f:""};
+  openSheet(`<div class="meal-h"><b>${editId?"Edit food":slot?"Custom entry → "+slot:"New pantry food"}</b><button class="x" onclick="closeSheet()">Cancel</button></div>
+  <div class="grid2" style="grid-template-columns:3fr 1fr"><div><label>Name</label><input id="fN" value="${esc(f.name)}"></div><div><label>Emoji</label><input id="fE" value="${esc(f.emoji)}"></div></div>
+  <label>Serving size</label><input id="fS" value="${esc(f.serving)}">
+  <div class="grid4"><div><label>Cal</label><input id="fC" type="number" inputmode="decimal" value="${f.cal}"></div><div><label>Protein</label><input id="fP" type="number" inputmode="decimal" value="${f.p}"></div><div><label>Carbs</label><input id="fCa" type="number" inputmode="decimal" value="${f.c}"></div><div><label>Fat</label><input id="fF" type="number" inputmode="decimal" value="${f.f}"></div></div>
+  ${slot?`<label style="display:flex;gap:8px;align-items:center;margin-top:12px"><input type="checkbox" id="fSave" checked style="width:auto"> Also save to pantry</label>`:""}
+  <button class="p" style="width:100%;margin-top:14px" onclick="saveFood(${slot?`'${slot}'`:"null"},${editId||"null"})">Save</button>
+  ${editId?`<button style="width:100%;margin-top:8px;color:var(--red)" onclick="deleteFood(${editId})">Delete from pantry</button>`:""}`)}
+function saveFood(slot,editId){const v=id=>document.getElementById(id).value.trim();const n=x=>parseFloat(x)||0;
+  const f={name:v("fN")||"Food",emoji:v("fE")||"🍽️",serving:v("fS")||"1 serving",cal:n(v("fC")),p:n(v("fP")),c:n(v("fCa")),f:n(v("fF"))};
+  if(editId){Object.assign(S.pantry.find(x=>x.id===editId),f)}
+  else if(!slot||document.getElementById("fSave").checked){S.pantry.push({...f,id:Date.now(),brand:"Custom",stock:true})}
+  if(slot)log()[slot].push({...f,qty:1});save();closeSheet();render()}
+function deleteFood(id){if(!confirm("Delete this food?"))return;S.pantry=S.pantry.filter(x=>x.id!==id);save();closeSheet();render()}
+function toggleStock(id){const f=S.pantry.find(x=>x.id===id);f.stock=!f.stock;save();renderPantry()}
+function renderPantry(){document.getElementById("pantryList").innerHTML=S.pantry.map(f=>`<div class="row"><div class="e">${f.emoji}</div><div class="t" onclick="openFoodForm(null,${f.id})"><div>${esc(f.name)}</div><div class="m">${esc(f.serving)} · ${f.cal} cal · ${f.p}P ${f.c}C ${f.f}F</div></div><span class="chip ${f.stock?"ok":""}" onclick="toggleStock(${f.id})">${f.stock?"In stock":"Out"}</span></div>`).join("")||`<div class="empty">No foods yet</div>`}
+
+// Meal finder: search combos of up to 3 in-stock items, 0.5–3 servings each
+function renderIdeas(){const nm=parseInt(document.getElementById("iMeals").value)||1;const cal=(parseFloat(document.getElementById("iCal").value)||0)/nm,pro=(parseFloat(document.getElementById("iPro").value)||0)/nm,el=document.getElementById("ideas");
+  const items=S.pantry.filter(f=>f.stock&&f.cal>0);
+  if(cal<50){el.innerHTML=`<div class="card empty">You're at or near your calorie goal for today.</div>`;return}
+  if(!items.length){el.innerHTML=`<div class="card empty">Mark some pantry items as in stock first.</div>`;return}
+  const Q=[.5,1,1.5,2,3],res=[];
+  const score=(c,p)=>{if(c>cal*1.03)return -1;const pr=pro>0?Math.min(p/pro,1.15):0;return pr*100+(c/cal)*40-(c>cal?30:0)};
+  const push=combo=>{let c=0,p=0,cb=0,fa=0;combo.forEach(([f,q])=>{c+=f.cal*q;p+=f.p*q;cb+=f.c*q;fa+=f.f*q});const s=score(c,p);if(s>0)res.push({combo,c,p,cb,fa,s})};
+  for(let i=0;i<items.length;i++)for(const a of Q){push([[items[i],a]]);
+    for(let j=i+1;j<items.length;j++)for(const b of Q){push([[items[i],a],[items[j],b]]);
+      for(let k=j+1;k<items.length;k++)for(const c of [1,2])push([[items[i],a],[items[j],b],[items[k],c]])}}
+  res.sort((x,y)=>y.s-x.s);const seen=new Set(),top=[];
+  for(const r of res){const sig=r.combo.map(([f])=>f.id).sort().join();if(seen.has(sig))continue;seen.add(sig);top.push(r);if(top.length>=6)break}
+  el.innerHTML=`<div class="sub" style="margin-bottom:8px">Target per meal: ~${Math.round(cal)} cal, ${Math.round(pro)}g protein</div>`+top.map((r,ix)=>`<div class="card"><div class="meal-h"><b>Option ${ix+1}</b><span class="m">${Math.round(r.c)} cal · <span style="color:var(--blue)">${Math.round(r.p)}g P</span></span></div>
+    ${r.combo.map(([f,q])=>`<div class="row"><div class="e">${f.emoji}</div><div class="t"><div>${q}× ${esc(f.name)}</div><div class="m">${esc(f.serving)}</div></div></div>`).join("")}
+    <div class="m" style="margin:6px 0 10px">${Math.round(r.cb)}g carbs · ${Math.round(r.fa)}g fat · leaves ${Math.max(0,Math.round(cal-r.c))} cal, ${Math.max(0,Math.round(pro-r.p))}g protein</div>
+    <select id="slot${ix}" style="margin-bottom:8px">${SLOTS.map(s=>`<option>${s}</option>`).join("")}</select>
+    <button class="p" style="width:100%" onclick='logIdea(${ix})'>Log this meal</button></div>`).join("")||`<div class="card empty">No combos fit — try adding more pantry items.</div>`;
+  window._ideas=top;const h=new Date().getHours();top.forEach((_,ix)=>document.getElementById("slot"+ix).value=h<11?"Breakfast":h<15?"Lunch":h<21?"Dinner":"Snacks")}
+function logIdea(ix){const r=window._ideas[ix],s=document.getElementById("slot"+ix).value;
+  r.combo.forEach(([f,q])=>log()[s].push({name:f.name,emoji:f.emoji,cal:f.cal,p:f.p,c:f.c,f:f.f,qty:q}));save();render();showTab("today")}
+
+function saveGoals(){const n=id=>parseFloat(document.getElementById(id).value)||0;S.goals={cal:n("gCal")||2200,p:n("gP")||180,c:n("gC")||220,f:n("gF")||65};save();render();alert("Goals saved")}
+function renderHistory(){const keys=Object.keys(S.days).sort().reverse().slice(0,30);
+  document.getElementById("history").innerHTML=keys.map(k=>{const t=totals(S.days[k]);const d=new Date(k+"T12:00");
+    return `<div class="row"><div class="t"><div>${k===todayKey()?"Today":d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</div><div class="m">${Math.round(t.c)}C · ${Math.round(t.f)}F</div></div><div style="text-align:right"><div style="font-variant-numeric:tabular-nums">${Math.round(t.cal)} cal</div><div class="m" style="color:${t.p>=S.goals.p?"var(--green)":"var(--mute)"}">${Math.round(t.p)}g P</div></div></div>`}).join("")}
+function exportData(){const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="macrocalc-backup-"+todayKey()+".json";a.click()}
+function importData(inp){const file=inp.files[0];if(!file)return;file.text().then(t=>{try{const d=JSON.parse(t);if(!d.goals||!d.pantry||!d.days)throw 0;if(!confirm("Replace current data with this backup?"))return;S=d;load2();save();render();alert("Backup restored")}catch(e){alert("That file isn't a Macro Calc backup")}});inp.value=""}
+function load2(){if(!S.days[todayKey()])S.days[todayKey()]=emptyLog()}
+
+load();save();render();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){load2();render()}});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
