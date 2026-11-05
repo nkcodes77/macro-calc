@@ -47,6 +47,7 @@ nav button span{font-size:20px}nav button.on{color:var(--green)}
 .stepper{display:flex;align-items:center;gap:6px}.stepper button{width:34px;padding:6px 0}
 .stepper span{min-width:34px;text-align:center;font-variant-numeric:tabular-nums}
 .empty{color:var(--mute);font-size:13px;padding:6px 0}
+.sug{background:var(--bg);border:1px solid var(--line);border-radius:10px;margin-top:4px;max-height:220px;overflow:auto}.sug div{padding:9px 10px;border-bottom:1px solid var(--line)}.sug div:last-child{border:0}
 .tab{display:none}.tab.on{display:block}
 </style>
 </head>
@@ -80,7 +81,7 @@ nav button span{font-size:20px}nav button.on{color:var(--green)}
 </section>
 
 <section class="tab" id="t-pantry">
-  <h1>Pantry</h1><div class="sub">Tap the stock tag to mark what you have. Only in-stock items are used for meal ideas.</div>
+  <h1>Pantry</h1><div class="sub">Tap the stock tag to mark what you have. Adding a food suggests Trader Joe's items as you type. Only in-stock items are used for meal ideas.</div>
   <button class="p" style="width:100%;margin:12px 0" onclick="openFoodForm()">+ Add food</button>
   <div class="card" id="pantryList"></div>
 </section>
@@ -113,6 +114,7 @@ nav button span{font-size:20px}nav button.on{color:var(--green)}
 
 <div class="sheet" id="sheet" onclick="if(event.target===this)closeSheet()"><div class="in" id="sheetIn"></div></div>
 
+<script src="tj-catalog.js"></script>
 <script>
 const DEFAULT_PANTRY=[
 {id:1,name:"TJ's Low Fat Greek Yogurt",brand:"Trader Joe's",emoji:"🫙",serving:"1 cup (227g)",cal:130,p:22,c:9,f:2},
@@ -171,14 +173,22 @@ function showTab(t){document.querySelectorAll(".tab").forEach(e=>e.classList.tog
 function openSheet(h){document.getElementById("sheetIn").innerHTML=h;document.getElementById("sheet").classList.add("open")}
 function closeSheet(){document.getElementById("sheet").classList.remove("open")}
 
-let addQty={};
-function openAdd(slot){addQty={};
+let addQty={},curSlot=null;
+const CAT=(window.TJ_CATALOG||[]).map(([name,emoji,serving,cal,p,c,f])=>({name,emoji,serving,cal,p,c,f}));
+function catSearch(q){q=q.toLowerCase().trim();if(!q)return[];const have=new Set(S.pantry.map(x=>x.name.toLowerCase()));
+  return CAT.filter(x=>{const n=x.name.toLowerCase();if(have.has(n))return false;return n.split(/[^a-z0-9]+/).some(w=>w.startsWith(q))||(q.length>2&&n.includes(q))}).slice(0,8)}
+function addFromCat(i){const f=window._cat[i];S.pantry.push({...f,id:Date.now(),brand:"Trader Joe's",stock:true});
+  log()[curSlot].push({name:f.name,emoji:f.emoji,cal:f.cal,p:f.p,c:f.c,f:f.f,qty:1});save();render();openAdd(curSlot);
+  document.getElementById("addQ").placeholder="Logged "+f.name+" ✓"}
+function openAdd(slot){addQty={};curSlot=slot;
   openSheet(`<div class="meal-h"><b>Add to ${slot}</b><button class="x" onclick="closeSheet()">Done</button></div>
-  <input placeholder="Search pantry" oninput="filterAdd(this.value)" style="margin:10px 0">
+  <input placeholder="Search pantry or Trader Joe's…" oninput="filterAdd(this.value)" style="margin:10px 0" id="addQ">
   <div id="addList">${S.pantry.map(f=>`<div class="row" data-n="${esc(f.name.toLowerCase())}"><div class="e">${f.emoji}</div><div class="t"><div>${esc(f.name)}</div><div class="m">${esc(f.serving)} · ${f.cal} cal · ${f.p}g P</div></div>
   <div class="stepper"><button onclick="stepQ(${f.id},-.5)">−</button><span id="q${f.id}">1</span><button onclick="stepQ(${f.id},.5)">+</button></div><button class="p" onclick="addFood('${slot}',${f.id})">Add</button></div>`).join("")}</div>
+  <div id="catRes"></div>
   <button style="width:100%;margin-top:10px" onclick="openFoodForm('${slot}')">+ Quick custom entry</button>`)}
-function filterAdd(q){q=q.toLowerCase();document.querySelectorAll("#addList .row").forEach(r=>r.style.display=r.dataset.n.includes(q)?"":"none")}
+function filterAdd(q){const ql=q.toLowerCase();document.querySelectorAll("#addList .row").forEach(r=>r.style.display=r.dataset.n.includes(ql)?"":"none");
+  const res=window._cat=catSearch(q);document.getElementById("catRes").innerHTML=res.length?`<h2>Trader Joe's · tap to add</h2>`+res.map((f,i)=>`<div class="row"><div class="e">${f.emoji}</div><div class="t"><div>${esc(f.name)}</div><div class="m">${esc(f.serving)} · ${f.cal} cal · ${f.p}g P</div></div><button class="p" onclick="addFromCat(${i})">+ Log</button></div>`).join(""):""}
 function stepQ(id,d){addQty[id]=Math.max(.5,(addQty[id]||1)+d);document.getElementById("q"+id).textContent=addQty[id]}
 function addFood(slot,id){const f=S.pantry.find(x=>x.id===id);log()[slot].push({name:f.name,emoji:f.emoji,cal:f.cal,p:f.p,c:f.c,f:f.f,qty:addQty[id]||1});save();render();
   const b=event.target;b.textContent="✓";setTimeout(()=>b.textContent="Add",700)}
@@ -186,12 +196,14 @@ function removeItem(s,ix){log()[s].splice(ix,1);save();render()}
 
 function openFoodForm(slot,editId){const f=editId?S.pantry.find(x=>x.id===editId):{name:"",emoji:"🍽️",serving:"1 serving",cal:"",p:"",c:"",f:""};
   openSheet(`<div class="meal-h"><b>${editId?"Edit food":slot?"Custom entry → "+slot:"New pantry food"}</b><button class="x" onclick="closeSheet()">Cancel</button></div>
-  <div class="grid2" style="grid-template-columns:3fr 1fr"><div><label>Name</label><input id="fN" value="${esc(f.name)}"></div><div><label>Emoji</label><input id="fE" value="${esc(f.emoji)}"></div></div>
+  <div class="grid2" style="grid-template-columns:3fr 1fr"><div><label>Name</label><input id="fN" value="${esc(f.name)}" autocomplete="off" oninput="suggest(this.value)" placeholder="Start typing, e.g. chick"><div id="sugBox"></div></div><div><label>Emoji</label><input id="fE" value="${esc(f.emoji)}"></div></div>
   <label>Serving size</label><input id="fS" value="${esc(f.serving)}">
   <div class="grid4"><div><label>Cal</label><input id="fC" type="number" inputmode="decimal" value="${f.cal}"></div><div><label>Protein</label><input id="fP" type="number" inputmode="decimal" value="${f.p}"></div><div><label>Carbs</label><input id="fCa" type="number" inputmode="decimal" value="${f.c}"></div><div><label>Fat</label><input id="fF" type="number" inputmode="decimal" value="${f.f}"></div></div>
   ${slot?`<label style="display:flex;gap:8px;align-items:center;margin-top:12px"><input type="checkbox" id="fSave" checked style="width:auto"> Also save to pantry</label>`:""}
   <button class="p" style="width:100%;margin-top:14px" onclick="saveFood(${slot?`'${slot}'`:"null"},${editId||"null"})">Save</button>
   ${editId?`<button style="width:100%;margin-top:8px;color:var(--red)" onclick="deleteFood(${editId})">Delete from pantry</button>`:""}`)}
+function suggest(q){const res=window._sug=catSearch(q);document.getElementById("sugBox").innerHTML=res.length?`<div class="sug">${res.map((f,i)=>`<div onclick="pickSug(${i})">${f.emoji} ${esc(f.name)} <span class="m">· ${f.cal} cal · ${f.p}g P</span></div>`).join("")}</div>`:""}
+function pickSug(i){const f=window._sug[i];const set=(id,v)=>document.getElementById(id).value=v;set("fN",f.name);set("fE",f.emoji);set("fS",f.serving);set("fC",f.cal);set("fP",f.p);set("fCa",f.c);set("fF",f.f);document.getElementById("sugBox").innerHTML=""}
 function saveFood(slot,editId){const v=id=>document.getElementById(id).value.trim();const n=x=>parseFloat(x)||0;
   const f={name:v("fN")||"Food",emoji:v("fE")||"🍽️",serving:v("fS")||"1 serving",cal:n(v("fC")),p:n(v("fP")),c:n(v("fCa")),f:n(v("fF"))};
   if(editId){Object.assign(S.pantry.find(x=>x.id===editId),f)}
